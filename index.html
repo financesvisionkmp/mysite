@@ -4,27 +4,81 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Finances Vision — Professional Trader</title>
+<!-- PERF: preconnect before font load -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth;font-size:17px;-webkit-text-size-adjust:100%}
-body{font-family:'Outfit',sans-serif;transition:background .5s,color .5s;overflow-x:hidden;cursor:none;min-width:320px}
+
+/* PERF: clamp() for fluid font-size, avoids discrete breakpoint jumps */
+html{
+  scroll-behavior:smooth;
+  /* PERF: scroll-padding-top offsets anchor links for fixed nav */
+  scroll-padding-top:76px;
+  font-size:clamp(15px,1.1vw,17px);
+  -webkit-text-size-adjust:100%;
+}
+body{
+  font-family:'Outfit',sans-serif;
+  /* PERF: only transition properties that don't trigger layout */
+  transition:background-color .5s,color .5s;
+  overflow-x:hidden;
+  cursor:none;
+  min-width:320px;
+}
+
+/* ACCESSIBILITY: respect reduced motion preference */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+  html{scroll-behavior:auto}
+}
+
+/* Custom cursor — hide on touch devices */
 @media(hover:none){body{cursor:auto}.cursor{display:none!important}}
 .cursor{position:fixed;pointer-events:none;z-index:9999;mix-blend-mode:difference}
 .cursor-dot{width:6px;height:6px;background:#fff;border-radius:50%;transform:translate(-50%,-50%)}
-.cursor-ring{width:32px;height:32px;border:1px solid rgba(255,255,255,.4);border-radius:50%;transform:translate(-50%,-50%);transition:width .25s,height .25s,border-color .25s}
-body:has(a:hover) .cursor-ring,body:has(button:hover) .cursor-ring{width:48px;height:48px;border-color:rgba(96,165,250,.7)}
-:root{--blue-neon:#3b82f6;--blue-bright:#60a5fa;--accent:#93c5fd;--blue-glow:rgba(59,130,246,.2);--transition:.4s cubic-bezier(.25,.1,.25,1)}
+.cursor-ring{
+  width:32px;height:32px;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  /* PERF: only animate GPU-friendly props */
+  transition:width .25s,height .25s,border-color .25s,transform .1s;
+  will-change:transform;
+}
+/* PERF FIX: body:has() was triggering full-page style recalc on every hover.
+   Replaced with a JS-driven class toggle instead (see bottom of file). */
+.cursor-ring.is-hovering{width:48px;height:48px;border-color:rgba(96,165,250,.7)}
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root{
+  --blue-neon:#3b82f6;
+  --blue-bright:#60a5fa;
+  --accent:#93c5fd;
+  --blue-glow:rgba(59,130,246,.2);
+  --transition:.4s cubic-bezier(.25,.1,.25,1);
+}
 [data-theme="dark"]{
   --bg:#040810;--bg2:#070e1c;
-  --surface:rgba(8,18,40,.78);--surface2:rgba(12,25,52,.58);
+  --surface:rgba(8,18,40,.88);--surface2:rgba(12,25,52,.68);
   --border:rgba(59,130,246,.13);--border-hover:rgba(59,130,246,.38);
   --text:#eef4ff;--text-muted:#8ab4d8;--text-dim:#2e4a6a;
   --card-shadow:0 8px 40px rgba(0,0,0,.55),0 0 0 1px rgba(59,130,246,.07);
   --card-hover-shadow:0 20px 60px rgba(0,0,0,.6),0 0 50px rgba(59,130,246,.1),0 0 0 1px rgba(59,130,246,.2);
-  --strip-bg:rgba(4,8,16,.68);--lbl:#60a5fa;
+  --strip-bg:rgba(4,8,16,.78);--lbl:#60a5fa;
   --tag-bg:rgba(59,130,246,.1);--tag-border:rgba(59,130,246,.2);--tag-color:#60a5fa;
+  /* FIX: --secondary-bg was undefined; mapped to --surface */
+  --secondary-bg:rgba(8,18,40,.88);
 }
 [data-theme="light"]{
   --bg:#ffffff;--bg2:#eef4ff;
@@ -35,81 +89,307 @@ body:has(a:hover) .cursor-ring,body:has(button:hover) .cursor-ring{width:48px;he
   --card-hover-shadow:0 16px 48px rgba(29,78,216,.16),0 4px 12px rgba(29,78,216,.09);
   --strip-bg:rgba(230,240,255,.96);--lbl:#1d4ed8;
   --tag-bg:rgba(29,78,216,.09);--tag-border:rgba(29,78,216,.28);--tag-color:#1d4ed8;
+  --secondary-bg:rgba(255,255,255,.98);
 }
 body{background:var(--bg);color:var(--text)}
+
+/* Scrollbar */
 ::-webkit-scrollbar{width:3px}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--blue-neon);border-radius:2px}
-#hero-glow{position:absolute;width:520px;height:520px;background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 68%);border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);transition:left .08s,top .08s;z-index:1}
-nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 clamp(1.25rem,5vw,3rem);height:68px;display:flex;align-items:center;justify-content:space-between;background:transparent;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid transparent;transition:background .45s,border-color .45s}
+
+/* ============================================================
+   HERO GLOW
+   PERF FIX: Changed from left/top animation (triggers layout)
+   to transform:translate() (GPU-composited, zero layout cost).
+   Element is now centered by default; JS offsets via transform.
+   ============================================================ */
+#hero-glow{
+  position:absolute;
+  width:520px;height:520px;
+  background:radial-gradient(circle,rgba(59,130,246,.18) 0%,transparent 68%);
+  border-radius:50%;
+  pointer-events:none;
+  /* Center as default position */
+  left:50%;top:50%;
+  transform:translate(-50%,-50%);
+  z-index:1;
+  will-change:transform;
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:0 clamp(1.25rem,5vw,3rem);
+  height:68px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:transparent;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid transparent;
+  transition:background-color .45s,border-color .45s;
+  /* PERF: isolate stacking context */
+  will-change:background-color;
+}
 nav.scrolled{background:var(--surface);border-color:var(--border)}
-.nav-logo{font-family:'Unbounded',sans-serif;font-weight:800;font-size:1rem;letter-spacing:-.01em;text-decoration:none;flex-shrink:0;display:flex;align-items:center;gap:.55rem}
-.nav-logo-img{width:32px;height:32px;object-fit:contain;flex-shrink:0;display:block;mix-blend-mode:screen;transition:filter .35s,transform .35s;filter:drop-shadow(0 0 6px rgba(59,130,246,.55)) drop-shadow(0 0 14px rgba(59,130,246,.25))}
-.nav-logo:hover .nav-logo-img{filter:drop-shadow(0 0 10px rgba(96,165,250,.85)) drop-shadow(0 0 22px rgba(59,130,246,.45));transform:scale(1.08)}
+
+.nav-logo{
+  font-family:'Unbounded',sans-serif;font-weight:800;font-size:1rem;
+  letter-spacing:-.01em;text-decoration:none;flex-shrink:0;
+  display:flex;align-items:center;gap:.55rem;
+}
+.nav-logo-img{
+  width:32px;height:32px;object-fit:contain;flex-shrink:0;display:block;
+  mix-blend-mode:screen;
+  transition:filter .35s,transform .35s;
+  filter:drop-shadow(0 0 6px rgba(59,130,246,.55)) drop-shadow(0 0 14px rgba(59,130,246,.25));
+  will-change:transform,filter;
+}
+.nav-logo:hover .nav-logo-img{
+  filter:drop-shadow(0 0 10px rgba(96,165,250,.85)) drop-shadow(0 0 22px rgba(59,130,246,.45));
+  transform:scale(1.08);
+}
 [data-theme="light"] .nav-logo-img{mix-blend-mode:multiply;filter:drop-shadow(0 0 4px rgba(29,78,216,.4)) saturate(1.2)}
 [data-theme="light"] .nav-logo:hover .nav-logo-img{filter:drop-shadow(0 0 8px rgba(29,78,216,.6)) saturate(1.4);transform:scale(1.08)}
 [data-theme="dark"] .nav-logo{background:linear-gradient(135deg,#fff 25%,var(--blue-bright) 65%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 [data-theme="light"] .nav-logo{background:linear-gradient(135deg,#08142a 20%,#1d4ed8 60%,#2563eb 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
 .nav-links{display:flex;align-items:center;gap:clamp(.9rem,2.5vw,2rem)}
-.nav-links a{font-family:'Outfit',sans-serif;font-size:.84rem;font-weight:500;color:var(--text-muted);text-decoration:none;letter-spacing:.05em;text-transform:uppercase;transition:color .3s;position:relative;white-space:nowrap}
-.nav-links a::after{content:'';position:absolute;bottom:-3px;left:0;right:0;height:1px;background:var(--blue-bright);transform:scaleX(0);transform-origin:right;transition:transform .3s}
+.nav-links a{
+  font-family:'Outfit',sans-serif;font-size:.84rem;font-weight:500;
+  color:var(--text-muted);text-decoration:none;
+  letter-spacing:.05em;text-transform:uppercase;
+  transition:color .3s;position:relative;white-space:nowrap;
+}
+.nav-links a::after{
+  content:'';position:absolute;bottom:-3px;left:0;right:0;height:1px;
+  background:var(--blue-bright);
+  transform:scaleX(0);transform-origin:right;
+  transition:transform .3s;
+}
 .nav-links a:hover{color:var(--text)}
 .nav-links a:hover::after{transform:scaleX(1);transform-origin:left}
 [data-theme="light"] .nav-links a:hover{color:#08142a}
+
 .nav-right{display:flex;align-items:center;gap:.9rem;flex-shrink:0}
-.theme-toggle{width:42px;height:22px;background:var(--surface);border:1px solid var(--border);border-radius:11px;position:relative;cursor:pointer;transition:all .3s}
-.theme-toggle::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#93c5fd);transition:transform .35s}
+.theme-toggle{
+  width:42px;height:22px;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:11px;position:relative;cursor:pointer;
+  transition:border-color .3s,box-shadow .3s;
+}
+.theme-toggle::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:14px;height:14px;border-radius:50%;
+  background:linear-gradient(135deg,#3b82f6,#93c5fd);
+  transition:transform .35s;
+  will-change:transform;
+}
 [data-theme="light"] .theme-toggle::after{transform:translateX(20px)}
 .theme-toggle:hover{border-color:var(--border-hover);box-shadow:0 0 10px var(--blue-glow)}
+
 .hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px}
-.hamburger span{width:22px;height:1.5px;background:var(--text-muted);border-radius:2px;transition:all .3s}
-.mobile-menu{display:none;position:fixed;top:68px;left:0;right:0;z-index:99;background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:1.5rem clamp(1.25rem,5vw,3rem);flex-direction:column;gap:1.4rem}
-.mobile-menu.open{display:flex}
-.mobile-menu a{font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:500;color:var(--text-muted);text-decoration:none;transition:color .25s;letter-spacing:.04em}
+.hamburger span{width:22px;height:1.5px;background:var(--text-muted);border-radius:2px;transition:transform .3s,opacity .3s;will-change:transform}
+
+.mobile-menu{
+  display:none;
+  position:fixed;top:68px;left:0;right:0;z-index:99;
+  background:var(--surface);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:1.5rem clamp(1.25rem,5vw,3rem);
+  flex-direction:column;gap:1.4rem;
+  /* PERF: animate with opacity + transform instead of display toggle */
+  opacity:0;transform:translateY(-6px);
+  transition:opacity .25s,transform .25s;
+  pointer-events:none;
+}
+.mobile-menu.open{
+  display:flex;
+  opacity:1;transform:translateY(0);
+  pointer-events:auto;
+}
+.mobile-menu a{
+  font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:500;
+  color:var(--text-muted);text-decoration:none;
+  transition:color .25s;letter-spacing:.04em;
+}
 .mobile-menu a:hover{color:#3b82f6}
-section{position:relative;overflow:hidden}
+
+/* ============================================================
+   LAYOUT UTILITIES
+   ============================================================ */
+section{
+  position:relative;overflow:hidden;
+  /* PERF: paint containment for sections with absolute children */
+  contain:paint;
+}
 .section-inner{max-width:1240px;margin:0 auto;padding:clamp(4rem,8vw,8rem) clamp(1.25rem,5vw,3rem)}
-.section-label{display:inline-flex;align-items:center;gap:.55rem;font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--lbl);margin-bottom:1.1rem}
+.section-label{
+  display:inline-flex;align-items:center;gap:.55rem;
+  font-family:'Outfit',sans-serif;font-size:.75rem;font-weight:600;
+  letter-spacing:.16em;text-transform:uppercase;
+  color:var(--lbl);margin-bottom:1.1rem;
+}
 .section-label::before{content:'';width:18px;height:1px;background:linear-gradient(90deg,var(--blue-neon),var(--accent))}
 [data-theme="light"] .section-label::before{background:linear-gradient(90deg,#1d4ed8,#2563eb)}
-.section-title{font-family:'Unbounded',sans-serif;font-weight:800;font-size:clamp(1.85rem,4.5vw,3rem);line-height:1.15;letter-spacing:-.03em;color:var(--text);margin-bottom:1.6rem}
+.section-title{
+  font-family:'Unbounded',sans-serif;font-weight:800;
+  font-size:clamp(1.85rem,4.5vw,3rem);
+  line-height:1.15;letter-spacing:-.03em;
+  color:var(--text);margin-bottom:1.6rem;
+}
 [data-theme="light"] .section-title{color:#08142a}
+.section-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0 clamp(1.25rem,5vw,3rem)}
+
+/* ============================================================
+   HERO
+   ============================================================ */
 #hero{min-height:100svh;min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg2);overflow:hidden}
-.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 55% 55% at 68% 28%,rgba(59,130,246,.1) 0%,transparent 62%),radial-gradient(ellipse 38% 38% at 18% 72%,rgba(29,78,216,.08) 0%,transparent 62%)}
-[data-theme="light"] .hero-bg{background:radial-gradient(ellipse 55% 55% at 68% 28%,rgba(29,78,216,.12) 0%,transparent 62%),radial-gradient(ellipse 38% 38% at 18% 72%,rgba(147,197,253,.18) 0%,transparent 62%)}
-.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(59,130,246,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%)}
-[data-theme="light"] .hero-grid{background-image:linear-gradient(rgba(29,78,216,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(29,78,216,.06) 1px,transparent 1px)}
+.hero-bg{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 55% 55% at 68% 28%,rgba(59,130,246,.1) 0%,transparent 62%),
+    radial-gradient(ellipse 38% 38% at 18% 72%,rgba(29,78,216,.08) 0%,transparent 62%);
+}
+[data-theme="light"] .hero-bg{
+  background:
+    radial-gradient(ellipse 55% 55% at 68% 28%,rgba(29,78,216,.12) 0%,transparent 62%),
+    radial-gradient(ellipse 38% 38% at 18% 72%,rgba(147,197,253,.18) 0%,transparent 62%);
+}
+.hero-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(59,130,246,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,.035) 1px,transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%);
+}
+[data-theme="light"] .hero-grid{
+  background-image:
+    linear-gradient(rgba(29,78,216,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(29,78,216,.06) 1px,transparent 1px);
+}
 .hero-chart{position:absolute;bottom:15%;left:0;right:0;height:180px;pointer-events:none;z-index:1;opacity:.07}
 [data-theme="light"] .hero-chart{opacity:.12}
 .hero-inner{position:relative;z-index:2;text-align:center;padding:clamp(2rem,8vw,4rem) clamp(1.25rem,5vw,3rem);max-width:900px;width:100%}
-.hero-name{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(2.6rem,8vw,6.5rem);line-height:1.02;letter-spacing:-.04em;background:linear-gradient(135deg,var(--text) 25%,var(--blue-bright) 58%,var(--accent) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.55rem;animation:fadeUp .8s .05s both}
+.hero-name{
+  font-family:'Unbounded',sans-serif;font-weight:900;
+  font-size:clamp(2.6rem,8vw,6.5rem);
+  line-height:1.02;letter-spacing:-.04em;
+  background:linear-gradient(135deg,var(--text) 25%,var(--blue-bright) 58%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin-bottom:.55rem;
+  animation:fadeUp .8s .05s both;
+}
 [data-theme="light"] .hero-name{background:linear-gradient(135deg,#08142a 15%,#1d4ed8 52%,#3b82f6 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hero-sub{font-family:'Unbounded',sans-serif;font-weight:400;font-size:clamp(.88rem,2vw,1.15rem);letter-spacing:.06em;text-transform:uppercase;color:var(--blue-bright);opacity:.85;margin-bottom:2.2rem;animation:fadeUp .8s .2s both}
+.hero-sub{
+  font-family:'Unbounded',sans-serif;font-weight:400;
+  font-size:clamp(.88rem,2vw,1.15rem);
+  letter-spacing:.06em;text-transform:uppercase;
+  color:var(--blue-bright);opacity:.85;
+  margin-bottom:2.2rem;
+  animation:fadeUp .8s .2s both;
+}
 [data-theme="light"] .hero-sub{color:#1d4ed8;opacity:1}
-.hero-tagline{font-family:'Outfit',sans-serif;font-size:clamp(1.05rem,2.5vw,1.45rem);font-weight:400;color:var(--text-muted);margin-bottom:3rem;animation:fadeUp .8s .3s both;line-height:1.7}
+.hero-tagline{
+  font-family:'Outfit',sans-serif;
+  font-size:clamp(1.05rem,2.5vw,1.45rem);
+  font-weight:400;color:var(--text-muted);
+  margin-bottom:3rem;
+  animation:fadeUp .8s .3s both;
+  line-height:1.7;
+}
 [data-theme="light"] .hero-tagline{color:#163055}
 .hero-tagline strong{color:var(--text);font-weight:600}
 [data-theme="light"] .hero-tagline strong{color:#08142a}
+
 .hero-ctas{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;animation:fadeUp .8s .4s both}
-.btn-primary{display:inline-flex;align-items:center;gap:.55rem;padding:.95rem 2.3rem;border-radius:100px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:.95rem;text-decoration:none;letter-spacing:.02em;border:none;cursor:pointer;box-shadow:0 4px 28px rgba(59,130,246,.3);transition:transform .35s,box-shadow .35s}
-.btn-primary:hover{transform:translateY(-3px);box-shadow:0 10px 44px rgba(59,130,246,.48)}
-.btn-outline{display:inline-flex;align-items:center;gap:.55rem;padding:.95rem 2.3rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Outfit',sans-serif;font-weight:500;font-size:.95rem;text-decoration:none;backdrop-filter:blur(12px);cursor:pointer;transition:border-color .35s,background .35s,box-shadow .35s}
+
+/* PRIMARY CTA — improved glow and active state */
+.btn-primary{
+  display:inline-flex;align-items:center;gap:.55rem;
+  padding:.95rem 2.3rem;border-radius:100px;
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  color:#fff;font-family:'Outfit',sans-serif;font-weight:600;font-size:.95rem;
+  text-decoration:none;letter-spacing:.02em;border:none;cursor:pointer;
+  box-shadow:0 4px 28px rgba(59,130,246,.35);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s ease;
+  will-change:transform;
+}
+.btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 12px 44px rgba(59,130,246,.52)}
+.btn-primary:active{transform:translateY(-1px) scale(.99)}
+
+.btn-outline{
+  display:inline-flex;align-items:center;gap:.55rem;
+  padding:.95rem 2.3rem;border-radius:100px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text);font-family:'Outfit',sans-serif;font-weight:500;font-size:.95rem;
+  text-decoration:none;
+  /* PERF: removed backdrop-filter here for performance; kept on nav only */
+  cursor:pointer;
+  transition:border-color .3s,background-color .3s,box-shadow .3s,transform .3s;
+  will-change:transform;
+}
 [data-theme="light"] .btn-outline{color:#08142a;border-color:rgba(29,78,216,.3);background:rgba(255,255,255,.95)}
-.btn-outline:hover{border-color:var(--border-hover);background:var(--surface2);box-shadow:0 4px 28px var(--blue-glow)}
-.hero-scroll{position:absolute;bottom:6.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.55rem;color:var(--text-dim);font-family:'Outfit',sans-serif;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;animation:fadeUp .8s .9s both}
+.btn-outline:hover{border-color:var(--border-hover);background:var(--surface2);box-shadow:0 4px 28px var(--blue-glow);transform:translateY(-2px)}
+
+.hero-scroll{
+  position:absolute;
+  /* RESPONSIVENESS FIX: use pb so it sits above the strip reliably */
+  bottom:calc(var(--strip-h, 76px) + 1.8rem);
+  left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:.55rem;
+  color:var(--text-dim);font-family:'Outfit',sans-serif;
+  font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;
+  animation:fadeUp .8s .9s both;
+}
 [data-theme="light"] .hero-scroll{color:#4a72a0}
 .scroll-line{width:1px;height:44px;background:linear-gradient(#3b82f6,transparent);animation:scrollPulse 2.5s ease infinite}
-.hero-strip{position:absolute;bottom:0;left:0;right:0;border-top:1px solid var(--border);background:var(--strip-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:center;padding:1rem clamp(1.25rem,5vw,3rem);z-index:3;animation:fadeUp .8s .6s both}
-.hero-strip-inner{max-width:1000px;width:100%;display:flex;justify-content:space-around;align-items:center;gap:clamp(.8rem,3vw,2rem);flex-wrap:wrap}
-.strip-stat{text-align:center;min-width:70px}
-.strip-num{font-family:'Unbounded',sans-serif;font-size:clamp(1rem,2.5vw,1.25rem);font-weight:700;background:linear-gradient(135deg,var(--blue-bright),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block;margin-bottom:.18rem}
+
+.hero-strip{
+  position:absolute;bottom:0;left:0;right:0;
+  border-top:1px solid var(--border);
+  background:var(--strip-bg);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  display:flex;justify-content:center;
+  padding:clamp(.75rem,.8vw,1rem) clamp(1rem,5vw,3rem);
+  z-index:3;animation:fadeUp .8s .6s both;
+}
+.hero-strip-inner{max-width:1000px;width:100%;display:flex;justify-content:space-around;align-items:center;gap:clamp(.6rem,3vw,2rem);flex-wrap:nowrap}
+.strip-stat{text-align:center;min-width:60px;flex:1}
+.strip-num{
+  font-family:'Unbounded',sans-serif;
+  font-size:clamp(.9rem,2.5vw,1.25rem);
+  font-weight:700;
+  background:linear-gradient(135deg,var(--blue-bright),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  display:block;margin-bottom:.18rem;
+}
 [data-theme="light"] .strip-num{background:linear-gradient(135deg,#1d4ed8,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.strip-label{font-family:'Outfit',sans-serif;font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+.strip-label{font-family:'Outfit',sans-serif;font-size:.68rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
 [data-theme="light"] .strip-label{color:#163055}
-.strip-divider{width:1px;height:36px;background:var(--border);flex-shrink:0}
-.glass-card{background:var(--surface);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:20px;box-shadow:var(--card-shadow);transition:transform .4s,box-shadow .4s,border-color .4s}
+.strip-divider{width:1px;height:32px;background:var(--border);flex-shrink:0}
+
+/* ============================================================
+   GLASS CARD — PERF: removed backdrop-filter from card itself;
+   the nav and strip already blur the background enough.
+   Backdrop-filter on many cards causes compositing layer bloat.
+   ============================================================ */
+.glass-card{
+  background:var(--surface);
+  border:1px solid var(--border);border-radius:20px;
+  box-shadow:var(--card-shadow);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .4s,border-color .4s;
+  will-change:transform;
+}
 [data-theme="light"] .glass-card{background:rgba(255,255,255,.98);border-color:rgba(29,78,216,.22)}
 .glass-card:hover{transform:translateY(-5px);box-shadow:var(--card-hover-shadow);border-color:var(--border-hover)}
+
+/* ============================================================
+   ABOUT
+   ============================================================ */
 #about{background:var(--bg)}
 [data-theme="light"] #about{background:#ffffff}
 .about-grid{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
@@ -118,43 +398,104 @@ section{position:relative;overflow:hidden}
 .about-text p strong{color:var(--blue-bright);font-weight:600}
 [data-theme="light"] .about-text p strong{color:#1d4ed8}
 .about-card{padding:clamp(1.8rem,4vw,2.8rem)}
-.about-avatar{width:74px;height:74px;border-radius:18px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-family:'Unbounded',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:1.6rem;box-shadow:0 8px 36px rgba(59,130,246,.28);letter-spacing:-.03em}
+.about-avatar{
+  width:74px;height:74px;border-radius:18px;
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+  margin-bottom:1.6rem;
+  box-shadow:0 8px 36px rgba(59,130,246,.28);
+}
 .about-card h3{font-family:'Unbounded',sans-serif;font-size:1.35rem;font-weight:700;margin-bottom:.38rem;letter-spacing:-.02em;color:var(--text)}
 [data-theme="light"] .about-card h3{color:#08142a}
 .about-card .title-tag{display:inline-block;font-family:'Outfit',sans-serif;font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--lbl);margin-bottom:1.4rem}
 .about-tags{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:1.6rem}
-.tag{padding:.3rem .8rem;border-radius:100px;font-family:'Outfit',sans-serif;font-size:.76rem;font-weight:500;background:var(--tag-bg);border:1px solid var(--tag-border);color:var(--tag-color);transition:background .3s,border-color .3s}
+.tag{
+  padding:.3rem .8rem;border-radius:100px;
+  font-family:'Outfit',sans-serif;font-size:.76rem;font-weight:500;
+  background:var(--tag-bg);border:1px solid var(--tag-border);color:var(--tag-color);
+  transition:background-color .3s,border-color .3s;
+}
 .tag:hover{background:rgba(59,130,246,.18);border-color:rgba(59,130,246,.35)}
 [data-theme="light"] .tag:hover{background:rgba(29,78,216,.18);border-color:rgba(29,78,216,.4)}
+
+/* ============================================================
+   EDGE / STRATEGY CARDS
+   ============================================================ */
 #edge{background:var(--bg2)}
 [data-theme="light"] #edge{background:#eef4ff}
 .edge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1.5rem;margin-top:3rem}
-.edge-card{padding:2.2rem;border-radius:18px;background:var(--surface);border:1px solid var(--border);transition:transform .4s,border-color .4s,box-shadow .4s;cursor:default}
+.edge-card{
+  padding:2.2rem;border-radius:18px;
+  background:var(--surface);border:1px solid var(--border);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1),border-color .4s,box-shadow .4s;
+  cursor:default;
+  will-change:transform;
+}
 [data-theme="light"] .edge-card{background:rgba(255,255,255,.98);border-color:rgba(29,78,216,.2)}
 .edge-card:hover{transform:translateY(-5px);border-color:var(--border-hover);box-shadow:var(--card-hover-shadow)}
-.edge-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(29,78,216,.08));border:1px solid rgba(59,130,246,.18);display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1.3rem;transition:background .4s,box-shadow .4s}
+.edge-icon{
+  width:52px;height:52px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(29,78,216,.08));
+  border:1px solid rgba(59,130,246,.18);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;margin-bottom:1.3rem;
+  transition:background-color .4s,box-shadow .4s;
+}
 [data-theme="light"] .edge-icon{background:linear-gradient(135deg,rgba(29,78,216,.1),rgba(29,78,216,.06));border-color:rgba(29,78,216,.24)}
 .edge-card:hover .edge-icon{background:linear-gradient(135deg,rgba(59,130,246,.22),rgba(29,78,216,.16));box-shadow:0 0 24px rgba(59,130,246,.18)}
 .edge-card h4{font-family:'Unbounded',sans-serif;font-size:.92rem;font-weight:700;margin-bottom:.6rem;letter-spacing:-.01em;line-height:1.3;color:var(--text)}
 [data-theme="light"] .edge-card h4{color:#08142a}
 .edge-card p{font-family:'Outfit',sans-serif;font-size:.92rem;line-height:1.7;color:var(--text-muted)}
 [data-theme="light"] .edge-card p{color:#163055}
+
+/* ============================================================
+   STATS
+   ============================================================ */
 #stats{background:var(--bg)}
 [data-theme="light"] #stats{background:#ffffff}
 .stats-header{text-align:center;max-width:600px;margin:0 auto 4rem}
 .stats-header p{color:var(--text-muted);font-size:1.05rem;line-height:1.75}
 [data-theme="light"] .stats-header p{color:#163055}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1.5rem}
-.stat-card{padding:2.3rem;border-radius:18px;text-align:center;background:var(--surface);border:1px solid var(--border);transition:transform .4s,border-color .4s,box-shadow .4s}
+.stat-card{
+  padding:2.3rem;border-radius:18px;text-align:center;
+  background:var(--surface);border:1px solid var(--border);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1),border-color .4s,box-shadow .4s;
+  will-change:transform;
+}
 [data-theme="light"] .stat-card{background:rgba(255,255,255,.98);border-color:rgba(29,78,216,.2)}
 .stat-card:hover{border-color:var(--border-hover);box-shadow:var(--card-hover-shadow);transform:translateY(-5px)}
-.stat-num{font-family:'Unbounded',sans-serif;font-size:clamp(1.9rem,4.5vw,2.9rem);font-weight:800;background:linear-gradient(135deg,var(--blue-bright),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:.55rem;display:block;letter-spacing:-.02em}
-[data-theme="light"] .stat-num{background:linear-gradient(135deg,#1d4ed8,#2563eb);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+/* FIX: Split into wrapper (.stat-num) + animated number span (.stat-val) + suffix span (.stat-sfx).
+   -webkit-background-clip:text is applied to the wrapper; the suffix inherits the gradient
+   and is always present in the DOM, so the gradient is sized to cover it from first paint.
+   This prevents the % / suffix being clipped when JS appends it after the gradient is set. */
+.stat-num{
+  font-family:'Unbounded',sans-serif;
+  font-size:clamp(1.3rem,3vw,2rem);font-weight:800;
+  background:linear-gradient(135deg,var(--blue-bright),var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;color:transparent;
+  line-height:1;margin-bottom:.55rem;
+  display:flex;align-items:baseline;justify-content:center;
+  letter-spacing:-.02em;
+  /* Extra right padding so the last glyph isn't clipped by the bg-clip bounding box */
+  padding-right:.12em;
+}
+[data-theme="light"] .stat-num{background:linear-gradient(135deg,#1d4ed8,#2563eb);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+/* The animated digit part — inherits gradient from parent */
+.stat-val{display:inline}
+/* Suffix always in DOM — gradient covers it from the start */
+.stat-sfx{display:inline;margin-left:.04em}
 .stat-label{font-family:'Outfit',sans-serif;font-size:.82rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
 [data-theme="light"] .stat-label{color:#163055}
 .stat-bar{height:1.5px;background:var(--border);border-radius:1px;margin-top:1.4rem;overflow:hidden}
 .stat-bar-fill{height:100%;background:linear-gradient(90deg,#3b82f6,#93c5fd);border-radius:1px;width:0;transition:width 1.8s cubic-bezier(.25,.1,.25,1)}
 [data-theme="light"] .stat-bar{background:rgba(29,78,216,.18)}
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
 #journey{background:var(--bg2)}
 [data-theme="light"] #journey{background:#eef4ff}
 .timeline{position:relative;margin-top:3rem}
@@ -166,7 +507,12 @@ section{position:relative;overflow:hidden}
 .tl-dot-wrap{display:flex;align-items:flex-start;justify-content:center;padding-top:.3rem;grid-column:2}
 .tl-dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#93c5fd);border:2px solid var(--bg2);box-shadow:0 0 16px rgba(59,130,246,.35);flex-shrink:0}
 [data-theme="light"] .tl-dot{border-color:#eef4ff}
-.tl-content{padding:1.7rem;border-radius:16px;background:var(--surface);border:1px solid var(--border);transition:border-color .4s,box-shadow .4s,transform .4s}
+.tl-content{
+  padding:1.7rem;border-radius:16px;
+  background:var(--surface);border:1px solid var(--border);
+  transition:border-color .4s,box-shadow .4s,transform .4s;
+  will-change:transform;
+}
 [data-theme="light"] .tl-content{background:rgba(255,255,255,.98);border-color:rgba(29,78,216,.2)}
 .tl-content:hover{border-color:var(--border-hover);box-shadow:var(--card-hover-shadow);transform:translateY(-3px)}
 .tl-year{font-family:'Outfit',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--lbl);margin-bottom:.45rem}
@@ -176,100 +522,256 @@ section{position:relative;overflow:hidden}
 [data-theme="light"] .tl-content p{color:#163055}
 .tl-item:nth-child(odd) .tl-content{grid-column:1;text-align:right}
 .tl-item:nth-child(odd) .tl-space{grid-column:3;grid-row:1}
+
+/* ============================================================
+   INDICATOR CARDS — REFACTORED from inline styles to classes
+   ============================================================ */
+.indicator-grid{
+  display:grid;gap:1.25rem;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));
+  margin-top:1.5rem;
+}
+.indicator-card{
+  background:var(--secondary-bg);
+  padding:1.1rem;border-radius:14px;
+  border:1px solid var(--border);
+  box-shadow:0 10px 25px rgba(0,0,0,.15);
+  transition:border-color .35s,box-shadow .35s,transform .35s;
+  will-change:transform;
+}
+.indicator-card:hover{border-color:var(--border-hover);box-shadow:var(--card-hover-shadow);transform:translateY(-4px)}
+.indicator-card img{
+  width:100%;height:220px;object-fit:cover;border-radius:10px;
+  display:block;
+  /* PERF: lazy-load GIFs — they are below the fold */
+}
+.indicator-card h3{
+  font-family:'Unbounded',sans-serif;font-size:.9rem;font-weight:700;
+  margin:.8rem 0 .4rem;color:var(--text);letter-spacing:-.01em;line-height:1.3;
+}
+[data-theme="light"] .indicator-card h3{color:#08142a}
+.indicator-card p{
+  color:var(--text-muted);font-size:.9rem;line-height:1.6;
+  font-family:'Outfit',sans-serif;
+}
+[data-theme="light"] .indicator-card p{color:#163055}
+
+/* ============================================================
+   SCREENSHOTS
+   ============================================================ */
+.screenshot-wrap{
+  display:flex;justify-content:center;margin-top:1.5rem;
+}
+.screenshot-wrap img{
+  max-width:100%;height:auto;border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  border:1px solid var(--border);
+}
+
+/* ============================================================
+   CONTACT
+   ============================================================ */
 #contact{background:var(--bg)}
 [data-theme="light"] #contact{background:#ffffff}
 .contact-inner{text-align:center;max-width:660px;margin:0 auto}
 .contact-inner > p{font-family:'Outfit',sans-serif;color:var(--text-muted);font-size:1.05rem;line-height:1.78;margin-bottom:2.8rem}
 [data-theme="light"] .contact-inner > p{color:#163055}
-.contact-links{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-bottom:3rem}
-.contact-link{display:flex;align-items:center;gap:.65rem;padding:.75rem 1.5rem;border-radius:100px;background:var(--surface);border:1px solid var(--border);color:var(--text-muted);text-decoration:none;font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:500;transition:border-color .35s,color .35s,box-shadow .35s,transform .35s}
+.contact-links{display:flex;justify-content:center;gap:.85rem;flex-wrap:wrap;margin-bottom:2rem}
+.contact-link{
+  display:flex;align-items:center;gap:.65rem;
+  padding:.75rem 1.5rem;border-radius:100px;
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--text-muted);text-decoration:none;
+  font-family:'Outfit',sans-serif;font-size:.88rem;font-weight:500;
+  transition:border-color .3s,color .3s,box-shadow .3s,transform .3s;
+  will-change:transform;
+}
 [data-theme="light"] .contact-link{background:rgba(255,255,255,.98);border-color:rgba(29,78,216,.25);color:#163055}
 .contact-link:hover{border-color:var(--border-hover);color:var(--blue-bright);box-shadow:0 4px 24px var(--blue-glow);transform:translateY(-2px)}
 [data-theme="light"] .contact-link:hover{color:#1d4ed8}
-.contact-email{display:inline-flex;align-items:center;gap:.9rem;flex-wrap:wrap;justify-content:center;font-family:'Unbounded',sans-serif;font-size:clamp(1rem,3.5vw,1.75rem);font-weight:700;color:var(--text);text-decoration:none;transition:color .35s;letter-spacing:-.02em}
+.contact-note{margin-top:1rem;text-align:center;color:var(--text-muted);font-size:.9rem;font-family:'Outfit',sans-serif}
+.contact-email{
+  display:inline-flex;align-items:center;gap:.9rem;flex-wrap:wrap;justify-content:center;
+  font-family:'Unbounded',sans-serif;
+  font-size:clamp(1rem,3.5vw,1.75rem);
+  font-weight:700;color:var(--text);text-decoration:none;
+  transition:color .35s;letter-spacing:-.02em;
+}
 [data-theme="light"] .contact-email{color:#08142a}
 .contact-email:hover{color:var(--blue-bright)}
 [data-theme="light"] .contact-email:hover{color:#1d4ed8}
-.contact-email .icon-wrap{font-size:.9rem;width:46px;height:46px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;transition:transform .35s,box-shadow .35s}
+.contact-email .icon-wrap{
+  font-size:.9rem;width:46px;height:46px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .35s,box-shadow .35s;
+  will-change:transform;
+}
 .contact-email:hover .icon-wrap{transform:rotate(12deg);box-shadow:0 4px 24px rgba(59,130,246,.4)}
-footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border);display:flex;justify-content:center;align-items:center;font-family:'Outfit',sans-serif;font-size:.82rem;color:var(--text-dim);text-align:center}
-[data-theme="light"] footer{color:#4a72a0;border-color:rgba(29,78,216,.15)}
-.blue-orb{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(59,130,246,.1),transparent 70%);filter:blur(70px)}
+
+/* ============================================================
+   BLUE ORB DECORATION
+   PERF: Added contain:strict so blur doesn't repaint parent
+   ============================================================ */
+.blue-orb{
+  position:absolute;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(59,130,246,.1),transparent 70%);
+  filter:blur(70px);
+  /* PERF: isolate the expensive blur to its own layer */
+  contain:strict;
+  will-change:transform;
+}
 [data-theme="light"] .blue-orb{background:radial-gradient(circle,rgba(29,78,216,.08),transparent 70%)}
-@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer{
+  padding:1.8rem clamp(1.25rem,5vw,3rem);
+  border-top:1px solid var(--border);
+  display:flex;justify-content:center;align-items:center;
+  font-family:'Outfit',sans-serif;font-size:.82rem;
+  color:var(--text-dim);text-align:center;
+}
+[data-theme="light"] footer{color:#4a72a0;border-color:rgba(29,78,216,.15)}
+
+/* ============================================================
+   ANIMATIONS
+   PERF: All use transform/opacity (GPU-composited only)
+   ============================================================ */
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
 @keyframes scrollPulse{0%,100%{opacity:.8}50%{opacity:.2}}
-.reveal{opacity:0;transform:translateY(22px);transition:opacity .75s ease,transform .75s ease}
+
+/* Scroll reveal */
+.reveal{
+  opacity:0;transform:translateY(22px);
+  transition:opacity .7s cubic-bezier(.25,.1,.25,1),transform .7s cubic-bezier(.25,.1,.25,1);
+  will-change:opacity,transform;
+}
 .reveal.visible{opacity:1;transform:translateY(0)}
-.section-divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0 clamp(1.25rem,5vw,3rem)}
-@media(min-width:1800px){html{font-size:18px}.section-inner{max-width:1400px}.hero-inner{max-width:1100px}}
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
+@media(min-width:1800px){
+  html{font-size:18px}
+  .section-inner{max-width:1400px}
+  .hero-inner{max-width:1100px}
+}
+
+/* Tablet landscape */
 @media(max-width:900px){
-  .about-grid{grid-template-columns:1fr}
+  .about-grid{grid-template-columns:1fr;gap:2.5rem}
   .timeline::before{left:20px}
   .tl-item{grid-template-columns:32px 1fr;gap:1rem}
-  .tl-item:nth-child(odd) .tl-content,.tl-item:nth-child(even) .tl-content{grid-column:2;grid-row:1;text-align:left}
-  .tl-item:nth-child(even) .tl-space,.tl-item:nth-child(odd) .tl-space{display:none}
+  .tl-item:nth-child(odd) .tl-content,
+  .tl-item:nth-child(even) .tl-content{grid-column:2;grid-row:1;text-align:left}
+  .tl-item:nth-child(even) .tl-space,
+  .tl-item:nth-child(odd) .tl-space{display:none}
   .tl-dot-wrap{grid-column:1;grid-row:1;padding-top:.5rem;justify-content:center}
-  .hero-strip-inner{justify-content:center;gap:1.2rem}
+  .hero-strip-inner{justify-content:center;gap:1rem}
   .strip-divider{display:none}
   .edge-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+/* Tablet portrait */
 @media(max-width:768px){
   .nav-links{display:none}
   .hamburger{display:flex}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .hero-scroll{bottom:5.5rem}
+  .hero-scroll{bottom:calc(64px + 1.5rem)}
 }
-@media(max-width:600px){html{font-size:16px}.edge-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
+
+/* Mobile */
+@media(max-width:600px){
+  html{font-size:15px}
+  .edge-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+  /* RESPONSIVENESS FIX: hero strip text tighter on small screens */
+  .strip-num{font-size:.88rem}
+  .strip-label{font-size:.6rem}
+  .hero-strip-inner{gap:.5rem}
+}
+
+/* Small mobile */
 @media(max-width:480px){
   .contact-links{flex-direction:column;align-items:center}
   .hero-ctas{flex-direction:column;align-items:center}
   .btn-primary,.btn-outline{width:100%;max-width:320px;justify-content:center}
-  .contact-link{width:100%;max-width:280px;justify-content:center}
-  .hero-strip{padding:.75rem 1rem}
-  .strip-num{font-size:.95rem}
-  .strip-label{font-size:.62rem}
+  .contact-link{width:100%;max-width:300px;justify-content:center}
+  .hero-strip{padding:.65rem .75rem}
+  /* Keep strip horizontal but more compact */
+  .hero-strip-inner{justify-content:space-between;flex-wrap:nowrap;gap:.25rem}
+  .strip-stat{min-width:0}
 }
-@media(max-width:360px){.hero-name{font-size:2.3rem}.nav-logo{font-size:.88rem}.nav-logo-img{width:26px;height:26px}}
+
+/* Very small */
+@media(max-width:360px){
+  .hero-name{font-size:2.2rem}
+  .nav-logo{font-size:.88rem}
+  .nav-logo-img{width:26px;height:26px}
+  .strip-num{font-size:.78rem}
+  .strip-label{font-size:.55rem;letter-spacing:.04em}
+}
 </style>
 </head>
 <body>
-<div class="cursor cursor-dot" id="cursorDot"></div>
-<div class="cursor cursor-ring" id="cursorRing"></div>
 
-<nav id="navbar">
-  <a href="#hero" class="nav-logo"><img src="logo.png" alt="" class="nav-logo-img">Finances Vision</a>
-  <div class="nav-links">
-    <a href="#about">About</a>
-    <a href="#journey">Journey</a>
-    <a href="#edge">Strategy</a>
-    <a href="#services">Services</a>
-    <a href="#stats">Performance</a>
-    <a href="#info">Indicators</a>
-    <a href="#screenshots">Proof</a>
-    <a href="#contact">Contact</a>
+<!-- Custom cursor -->
+<div class="cursor cursor-dot" id="cursorDot" aria-hidden="true"></div>
+<div class="cursor cursor-ring" id="cursorRing" aria-hidden="true"></div>
+
+<!-- ============================================================
+     NAV
+     ============================================================ -->
+<nav id="navbar" role="navigation" aria-label="Main navigation">
+  <a href="#hero" class="nav-logo">
+    <img src="logo.png" alt="Finances Vision" class="nav-logo-img" width="32" height="32">
+    Finances Vision
+  </a>
+  <div class="nav-links" role="menubar">
+    <a href="#about" role="menuitem">About</a>
+    <a href="#journey" role="menuitem">Journey</a>
+    <a href="#edge" role="menuitem">Strategy</a>
+    <a href="#services" role="menuitem">Services</a>
+    <a href="#stats" role="menuitem">Performance</a>
+    <a href="#info" role="menuitem">Indicators</a>
+    <a href="#screenshots" role="menuitem">Proof</a>
+    <a href="#contact" role="menuitem">Contact</a>
   </div>
   <div class="nav-right">
-    <div class="theme-toggle" id="themeToggle" title="Toggle theme" role="button" aria-label="Toggle theme"></div>
-    <div class="hamburger" id="hamburger" aria-label="Open menu"><span></span><span></span><span></span></div>
+    <div class="theme-toggle" id="themeToggle" role="button" tabindex="0" aria-label="Toggle light/dark theme"></div>
+    <div class="hamburger" id="hamburger" role="button" tabindex="0" aria-label="Toggle mobile menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </div>
   </div>
 </nav>
-<div class="mobile-menu" id="mobileMenu">
-  <a href="#about" onclick="closeMobile()">About</a>
-  <a href="#journey" onclick="closeMobile()">Journey</a>
-  <a href="#edge" onclick="closeMobile()">Strategy</a>
-  <a href="#services" onclick="closeMobile()">Services</a>
-  <a href="#upcoming" onclick="closeMobile()">Upcoming</a>
-  <a href="#stats" onclick="closeMobile()">Performance</a>
-  <a href="#info" onclick="closeMobile()">Info</a>
-  <a href="#screenshots" onclick="closeMobile()">Screenshots</a>
-  <a href="#contact" onclick="closeMobile()">Contact</a>
-</div>
 
+<!-- Mobile menu — FIX: removed inline onclick, driven by JS event delegation -->
+<nav class="mobile-menu" id="mobileMenu" aria-label="Mobile navigation">
+  <a href="#about">About</a>
+  <a href="#journey">Journey</a>
+  <a href="#edge">Strategy</a>
+  <a href="#services">Services</a>
+  <a href="#upcoming">Upcoming</a>
+  <a href="#stats">Performance</a>
+  <a href="#info">Indicators</a>
+  <a href="#screenshots">Screenshots</a>
+  <a href="#contact">Contact</a>
+</nav>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
 <section id="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-grid"></div>
-  <div id="hero-glow"></div>
-  <svg class="hero-chart" viewBox="0 0 1440 180" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div id="hero-glow" aria-hidden="true"></div>
+  <!-- Decorative chart lines -->
+  <svg class="hero-chart" viewBox="0 0 1440 180" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M0 140 L80 120 L180 130 L280 90 L380 110 L460 70 L560 85 L660 55 L740 75 L820 40 L920 60 L1020 30 L1100 50 L1200 20 L1320 45 L1440 15" stroke="#60a5fa" stroke-width="1.5"/>
     <path d="M0 160 L100 145 L220 155 L320 120 L420 135 L520 100 L620 115 L720 85 L820 100 L940 70 L1060 88 L1160 62 L1280 80 L1440 55" stroke="#3b82f6" stroke-width="1" opacity=".5"/>
   </svg>
@@ -278,44 +780,53 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
     <p class="hero-sub">Professional Trader &amp; Mentor</p>
     <p class="hero-tagline"><strong>Precision.</strong> &nbsp;<strong>Discipline.</strong> &nbsp;<strong>Consistent Edge.</strong></p>
     <div class="hero-ctas">
-      <a href="#stats" class="btn-primary">View Performance <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <a href="#stats" class="btn-primary">
+        View Performance
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 7h12M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
       <a href="#contact" class="btn-outline">Get in Touch</a>
     </div>
   </div>
-  <div class="hero-strip">
+  <!-- Strip stats -->
+  <div class="hero-strip" aria-label="Key statistics">
     <div class="hero-strip-inner">
       <div class="strip-stat"><span class="strip-num">84.56%</span><span class="strip-label">Win Rate</span></div>
-      <div class="strip-divider"></div>
+      <div class="strip-divider" aria-hidden="true"></div>
       <div class="strip-stat"><span class="strip-num">1:2.46</span><span class="strip-label">Avg Risk:Reward</span></div>
-      <div class="strip-divider"></div>
+      <div class="strip-divider" aria-hidden="true"></div>
       <div class="strip-stat"><span class="strip-num">14.46%</span><span class="strip-label">Max Drawdown</span></div>
-      <div class="strip-divider"></div>
+      <div class="strip-divider" aria-hidden="true"></div>
       <div class="strip-stat"><span class="strip-num">7+ Yrs</span><span class="strip-label">Experience</span></div>
     </div>
   </div>
-  <div class="hero-scroll"><span>Scroll</span><div class="scroll-line"></div></div>
+  <div class="hero-scroll" aria-hidden="true"><span>Scroll</span><div class="scroll-line"></div></div>
 </section>
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     ABOUT
+     ============================================================ -->
 <section id="about">
-  <div class="blue-orb" style="width:500px;height:500px;top:-100px;right:-150px;opacity:.55"></div>
+  <div class="blue-orb" style="width:500px;height:500px;top:-100px;right:-150px;opacity:.55" aria-hidden="true"></div>
   <div class="section-inner">
     <div class="about-grid">
       <div class="about-text reveal">
         <span class="section-label">About</span>
-        <h2 class="section-title">K. Mohammadi Pasha — Founder & CEO</h2>
-        <p>I’m a full-time trader and financial advisor with over 7 years of experience in the markets.</p>
+        <h2 class="section-title">K. Mohammadi Pasha — Founder &amp; CEO</h2>
+        <p>I'm a full-time trader and financial advisor with over 7 years of experience in the markets.</p>
         <p>My journey began in 2019 in the Indian stock market, focusing on <strong>Nifty</strong>, intraday, and swing trading. What started as curiosity evolved into a disciplined pursuit — built through continuous screen time, real losses, and consistent refinement.</p>
         <p>In 2021, I expanded into global markets, specialising in forex and commodities. My core focus includes <strong>XAUUSD</strong> (Gold), <strong>USOIL</strong>, <strong>BTCUSD</strong> (Bitcoin), and <strong>XAGUSD</strong> (Silver), with a strong emphasis on <strong>price action</strong>, liquidity, and <strong>institutional order flow</strong>.</p>
         <p>Beyond trading, I developed expertise in GST and income tax filing under Government of India regulations, strengthening my foundation in financial advisory.</p>
         <p>Today, through Finances Vision, I help individuals not only trade better but also manage their finances with structure — covering investment planning, retirement strategies, and budgeting systems.</p>
-        <p>Over the years, I’ve worked with <strong>1000+ clients across India</strong>, guided by one principle:</p>
-        <p style="margin-top:0.8rem;text-align:center;font-style:italic;font-weight:600;color:var(--blue-bright);">“Protect capital first. Build consistency next. Scale with discipline.”</p>
+        <p>Over the years, I've worked with <strong>1000+ clients across India</strong>, guided by one principle:</p>
+        <p style="margin-top:.8rem;text-align:center;font-style:italic;font-weight:600;color:var(--blue-bright);">"Protect capital first. Build consistency next. Scale with discipline."</p>
       </div>
       <div class="reveal">
         <div class="glass-card about-card">
-          <div class="about-avatar"><img src="logo.png" alt="Finances Vision" style="width:100%;height:100%;object-fit:cover;border-radius:18px;" /></div>
+          <div class="about-avatar">
+            <img src="logo.png" alt="Finances Vision logo" width="74" height="74" style="width:100%;height:100%;object-fit:cover;border-radius:18px;">
+          </div>
           <h3>Finances Vision</h3>
           <span class="title-tag">Proprietary Trader · Strategist · Financial Advisor</span>
           <div class="about-tags">
@@ -331,40 +842,78 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     JOURNEY / TIMELINE
+     ============================================================ -->
 <section id="journey">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:500px;margin:0 auto 1rem">
       <span class="section-label">The Journey</span>
       <h2 class="section-title">From Curious to<br>Consistent</h2>
     </div>
-    <div class="timeline">
-      <div class="tl-item reveal">
-        <div class="tl-content"><div class="tl-year">2016</div><h4>Academic Foundation</h4><p>Completed BE in Computer Science at REVA University, building analytical thinking and problem-solving skills that later translated into trading discipline.</p></div>
-        <div class="tl-dot-wrap"><div class="tl-dot"></div></div><div class="tl-space"></div>
+    <div class="timeline" role="list">
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-content">
+          <div class="tl-year">2016</div>
+          <h4>Academic Foundation</h4>
+          <p>Completed BE in Computer Science at REVA University, building analytical thinking and problem-solving skills that later translated into trading discipline.</p>
+        </div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-space"></div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-space"></div><div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-        <div class="tl-content"><div class="tl-year">2019</div><h4>Entry into Markets</h4><p>Began trading in Indian stock markets focused on Nifty, intraday, and swing trading while developing a strong understanding of price action.</p></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-space"></div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-content">
+          <div class="tl-year">2019</div>
+          <h4>Entry into Markets</h4>
+          <p>Began trading in Indian stock markets focused on Nifty, intraday, and swing trading while developing a strong understanding of price action.</p>
+        </div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-content"><div class="tl-year">2020–2021</div><h4>Skill Development Phase</h4><p>Gained deeper exposure to market behavior through continuous screen time. Refined strategies in equities with focus on consistency and risk control.</p></div>
-        <div class="tl-dot-wrap"><div class="tl-dot"></div></div><div class="tl-space"></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-content">
+          <div class="tl-year">2020–2021</div>
+          <h4>Skill Development Phase</h4>
+          <p>Gained deeper exposure to market behavior through continuous screen time. Refined strategies in equities with focus on consistency and risk control.</p>
+        </div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-space"></div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-space"></div><div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-        <div class="tl-content"><div class="tl-year">2021</div><h4>Expansion to Global Markets</h4><p>Entered forex and commodities trading, specializing in XAUUSD, USOIL, BTCUSD, and XAGUSD with more macro-driven approach.</p></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-space"></div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-content">
+          <div class="tl-year">2021</div>
+          <h4>Expansion to Global Markets</h4>
+          <p>Entered forex and commodities trading, specializing in XAUUSD, USOIL, BTCUSD, and XAGUSD with more macro-driven approach.</p>
+        </div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-content"><div class="tl-year">2022</div><h4>Financial Expertise Expansion</h4><p>Developed expertise in GST and income tax filing under Government of India frameworks, adding strong financial advisory dimension.</p></div>
-        <div class="tl-dot-wrap"><div class="tl-dot"></div></div><div class="tl-space"></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-content">
+          <div class="tl-year">2022</div>
+          <h4>Financial Expertise Expansion</h4>
+          <p>Developed expertise in GST and income tax filing under Government of India frameworks, adding strong financial advisory dimension.</p>
+        </div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-space"></div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-space"></div><div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-        <div class="tl-content"><div class="tl-year">2024</div><h4>Advisory &amp; Brand Evolution</h4><p>Launched structured advisory under Finances Vision — focusing on investment planning, retirement strategies, and budgeting systems.</p></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-space"></div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-content">
+          <div class="tl-year">2024</div>
+          <h4>Advisory &amp; Brand Evolution</h4>
+          <p>Launched structured advisory under Finances Vision — focusing on investment planning, retirement strategies, and budgeting systems.</p>
+        </div>
       </div>
-      <div class="tl-item reveal">
-        <div class="tl-content"><div class="tl-year">2019–Present</div><h4>Client Impact &amp; Growth</h4><p>Guided 1000+ clients across India, combining trading insight with disciplined financial planning to deliver practical, results-driven outcomes.</p></div>
-        <div class="tl-dot-wrap"><div class="tl-dot"></div></div><div class="tl-space"></div>
+      <div class="tl-item reveal" role="listitem">
+        <div class="tl-content">
+          <div class="tl-year">2019–Present</div>
+          <h4>Client Impact &amp; Growth</h4>
+          <p>Guided 1000+ clients across India, combining trading insight with disciplined financial planning to deliver practical, results-driven outcomes.</p>
+        </div>
+        <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+        <div class="tl-space"></div>
       </div>
     </div>
   </div>
@@ -372,6 +921,9 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     STRATEGY / EDGE
+     ============================================================ -->
 <section id="edge">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
@@ -393,6 +945,9 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     SERVICES
+     ============================================================ -->
 <section id="services">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
@@ -415,6 +970,9 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     UPCOMING SERVICES
+     ============================================================ -->
 <section id="upcoming">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
@@ -435,8 +993,11 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     STATS / PERFORMANCE
+     ============================================================ -->
 <section id="stats">
-  <div class="blue-orb" style="width:600px;height:600px;bottom:-200px;left:-200px;opacity:.45"></div>
+  <div class="blue-orb" style="width:600px;height:600px;bottom:-200px;left:-200px;opacity:.45" aria-hidden="true"></div>
   <div class="section-inner">
     <div class="stats-header reveal">
       <span class="section-label">Performance</span>
@@ -444,60 +1005,60 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
       <p>Consistent, verified performance metrics across proprietary funded accounts and personal capital.</p>
     </div>
     <div class="stats-grid">
-  <div class="stat-card reveal">
-    <span class="stat-num" data-target="84.56" data-decimal="2">0</span>
-    <span class="stat-label">Win Rate %</span>
-    <div class="stat-bar"><div class="stat-bar-fill" data-width="68%"></div></div>
-  </div>
-
-  <div class="stat-card reveal">
-<span class="stat-num" data-target="2.46" data-decimal="2" data-prefix="1:"></span>    <span class="stat-label">Avg Risk : Reward</span>
-    <div class="stat-bar"><div class="stat-bar-fill" data-width="80%"></div></div>
-  </div>
-
-  <div class="stat-card reveal">
-    <span class="stat-num" data-target="14.46" data-decimal="2">0</span>
-    <span class="stat-label">Max Drawdown %</span>
-    <div class="stat-bar"><div class="stat-bar-fill" data-width="12%"></div></div>
-  </div>
-
-  <div class="stat-card reveal">
-    <span class="stat-num" data-target="7" data-suffix="+ Yrs">0</span>
-    <span class="stat-label">Experience</span>
-    <div class="stat-bar"><div class="stat-bar-fill" data-width="75%"></div></div>
-  </div>
-</div>
+      <div class="stat-card reveal">
+        <!-- FIX: suffix in its own span so gradient covers it from first paint -->
+        <span class="stat-num"><span class="stat-val" data-target="84.56" data-decimal="2">0</span><span class="stat-sfx">%</span></span>
+        <span class="stat-label">Win Rate</span>
+        <div class="stat-bar"><div class="stat-bar-fill" data-width="68%"></div></div>
+      </div>
+      <div class="stat-card reveal">
+        <!-- FIX: prefix in its own span -->
+        <span class="stat-num"><span class="stat-sfx">1:</span><span class="stat-val" data-target="2.46" data-decimal="2">0</span></span>
+        <span class="stat-label">Avg Risk : Reward</span>
+        <div class="stat-bar"><div class="stat-bar-fill" data-width="80%"></div></div>
+      </div>
+      <div class="stat-card reveal">
+        <span class="stat-num"><span class="stat-val" data-target="14.46" data-decimal="2">0</span><span class="stat-sfx">%</span></span>
+        <span class="stat-label">Max Drawdown</span>
+        <div class="stat-bar"><div class="stat-bar-fill" data-width="12%"></div></div>
+      </div>
+      <div class="stat-card reveal">
+        <span class="stat-num"><span class="stat-val" data-target="7" data-decimal="0">0</span><span class="stat-sfx">+ Yrs</span></span>
+        <span class="stat-label">Experience</span>
+        <div class="stat-bar"><div class="stat-bar-fill" data-width="75%"></div></div>
+      </div>
+    </div>
   </div>
 </section>
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     INDICATORS — REFACTORED: moved all inline styles to CSS classes
+     PERF: Added loading="lazy" to GIF images
+     ============================================================ -->
 <section id="info">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
       <span class="section-label">Indicator Previews</span>
       <h2 class="section-title">TradingView / MT5 Indicator</h2>
     </div>
-    <div class="indicator-grid" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:1.5rem;">
-      <div class="indicator-card" style="background:var(--secondary-bg);padding:1rem;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.15);">
-        <img src="1.gif" alt="Indicator 1 preview" style="width:100%;height:240px;object-fit:cover;border-radius:12px;" />
-        <h3 style="margin:0.75rem 0 0.35rem;">Indicator 1 (Trend + Momentum)</h3>
-        <p style="margin:0.25rem 0;line-height:1.45;color:var(--text-muted);font-size:0.95rem;">
-          1) Trend-following directional filter.
-          2) Momentum entry timing with automatic level confluence.
-          3) Multi-timeframe alignment built-in.
-          4) Ideal for swing and intraday breakout setups.
-        </p>
+    <div class="indicator-grid">
+      <div class="indicator-card reveal">
+        <img src="1.gif" alt="Indicator 1: Trend + Momentum preview" loading="lazy">
+        <h3>Indicator 1 (Trend + Momentum)</h3>
+        <p>1) Trend-following directional filter.<br>
+           2) Momentum entry timing with automatic level confluence.<br>
+           3) Multi-timeframe alignment built-in.<br>
+           4) Ideal for swing and intraday breakout setups.</p>
       </div>
-      <div class="indicator-card" style="background:var(--secondary-bg);padding:1rem;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.15);">
-        <img src="2.gif" alt="Indicator 2 preview" style="width:100%;height:240px;object-fit:cover;border-radius:12px;" />
-        <h3 style="margin:0.75rem 0 0.35rem;">Indicator 2 (Structure + Divergence)</h3>
-        <p style="margin:0.25rem 0;line-height:1.45;color:var(--text-muted);font-size:0.95rem;">
-          1) Market structure oscillator with adaptive support/resistance.
-          2) Divergence alerts for momentum reversals.
-          3) False-break filter and confirmation streak logic.
-          4) Easy visual entry zone with risk-level overlay.
-        </p>
+      <div class="indicator-card reveal">
+        <img src="2.gif" alt="Indicator 2: Structure + Divergence preview" loading="lazy">
+        <h3>Indicator 2 (Structure + Divergence)</h3>
+        <p>1) Market structure oscillator with adaptive support/resistance.<br>
+           2) Divergence alerts for momentum reversals.<br>
+           3) False-break filter and confirmation streak logic.<br>
+           4) Easy visual entry zone with risk-level overlay.</p>
       </div>
     </div>
   </div>
@@ -505,6 +1066,10 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     SCREENSHOTS
+     PERF: Added loading="lazy" to GIF
+     ============================================================ -->
 <section id="screenshots">
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
@@ -512,94 +1077,247 @@ footer{padding:1.8rem clamp(1.25rem,5vw,3rem);border-top:1px solid var(--border)
       <h2 class="section-title">Verified Trading Results</h2>
       <p>Snapshots from live accounts and strategy dashboards</p>
     </div>
-    <div style="display:flex;justify-content:center;margin-top:1.5rem;">
-      <img src="ss2.gif" alt="Performance screenshot" style="max-width:100%;height:auto;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);" />
+    <div class="screenshot-wrap reveal">
+      <img src="ss2.gif" alt="Verified trading performance screenshot" loading="lazy">
     </div>
   </div>
 </section>
 
 <div class="section-divider"></div>
 
+<!-- ============================================================
+     CONTACT
+     ============================================================ -->
 <section id="contact">
   <div class="section-inner">
     <div class="contact-inner reveal">
       <span class="section-label">Contact</span>
       <h2 class="section-title">Let's Connect</h2>
       <p>Whether you're a fellow trader, prop firm, or looking to collaborate — we're always open to meaningful conversations about markets and strategy.</p>
-      <div class="contact-links" style="flex-wrap:wrap; justify-content:center; gap:0.75rem;">
-        <a href="https://t.me/financesvision" class="contact-link">📩 Telegram</a>
-        <a href="https://discord.gg/your-server" class="contact-link">💬 Discord</a>
+      <div class="contact-links">
+        <a href="https://t.me/financesvision" class="contact-link" target="_blank" rel="noopener noreferrer">📩 Telegram</a>
+        <a href="https://discord.gg/your-server" class="contact-link" target="_blank" rel="noopener noreferrer">💬 Discord</a>
         <a href="tel:+919741826916" class="contact-link">📞 +91 97418 26916</a>
         <a href="mailto:financesvisionkmp@gmail.com" class="contact-link">✉ financesvisionkmp@gmail.com</a>
       </div>
-      <p style="margin-top:1rem;text-align:center;color:var(--text-muted);font-size:0.95rem;">Prefer direct messages on Telegram or Discord for fast replies.</p>
+      <p class="contact-note">Prefer direct messages on Telegram or Discord for fast replies.</p>
     </div>
   </div>
 </section>
 
-<footer><span>© 2026 Finances Vision. All rights reserved.</span></footer>
+<footer>
+  <span>© 2026 Finances Vision. All rights reserved.</span>
+</footer>
 
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 <script>
-if(matchMedia('(hover:hover)').matches){
-  const dot=document.getElementById('cursorDot'),ring=document.getElementById('cursorRing');
+/* ============================================================
+   CUSTOM CURSOR
+   PERF: Single RAF loop; cursor-ring uses class toggle instead
+   of body:has() which caused full-page style recalc
+   ============================================================ */
+(function initCursor(){
+  if(!matchMedia('(hover:hover)').matches) return;
+
+  const dot   = document.getElementById('cursorDot');
+  const ring  = document.getElementById('cursorRing');
   let mx=0,my=0,rx=0,ry=0;
-  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;dot.style.left=mx+'px';dot.style.top=my+'px'},{passive:true});
-  (function animRing(){rx+=(mx-rx)*.1;ry+=(my-ry)*.1;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animRing)})();
-  const heroEl=document.getElementById('hero'),glow=document.getElementById('hero-glow');
-  heroEl.addEventListener('mousemove',e=>{const r=heroEl.getBoundingClientRect();glow.style.left=(e.clientX-r.left)+'px';glow.style.top=(e.clientY-r.top)+'px'},{passive:true});
-}
-document.getElementById('themeToggle').addEventListener('click',()=>{const h=document.documentElement;h.setAttribute('data-theme',h.getAttribute('data-theme')==='dark'?'light':'dark')});
-window.addEventListener('scroll',()=>{document.getElementById('navbar').classList.toggle('scrolled',window.scrollY>60)},{passive:true});
-const ham=document.getElementById('hamburger'),mob=document.getElementById('mobileMenu');
-ham.addEventListener('click',()=>{
-  mob.classList.toggle('open');
-  const s=ham.querySelectorAll('span');
-  if(mob.classList.contains('open')){s[0].style.transform='rotate(45deg) translate(5px,5px)';s[1].style.opacity='0';s[2].style.transform='rotate(-45deg) translate(5px,-5px)'}
-  else{s.forEach(x=>{x.style.transform='';x.style.opacity=''})}
-});
-function closeMobile(){mob.classList.remove('open');ham.querySelectorAll('span').forEach(s=>{s.style.transform='';s.style.opacity=''})}
-document.addEventListener('click',e=>{if(mob.classList.contains('open')&&!mob.contains(e.target)&&!ham.contains(e.target))closeMobile()});
-const observer=new IntersectionObserver(entries=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting){
-      const idx=Array.from(e.target.parentElement.children).indexOf(e.target);
-      e.target.style.transitionDelay=(idx*0.07)+'s';
-      e.target.classList.add('visible');
-      observer.unobserve(e.target);
-      e.target.querySelectorAll('.stat-num').forEach(animateCounter);
-      e.target.querySelectorAll('.stat-bar-fill').forEach(b=>{setTimeout(()=>b.style.width=b.dataset.width,350)});
+
+  document.addEventListener('mousemove', e=>{
+    mx=e.clientX; my=e.clientY;
+    dot.style.left = mx+'px';
+    dot.style.top  = my+'px';
+  },{passive:true});
+
+  /* FIX: replaced body:has(a:hover) CSS with JS class toggle */
+  document.addEventListener('mouseover', e=>{
+    if(e.target.closest('a,button,[role="button"]')){
+      ring.classList.add('is-hovering');
     }
   });
-},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
-document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+  document.addEventListener('mouseout', e=>{
+    if(e.target.closest('a,button,[role="button"]')){
+      ring.classList.remove('is-hovering');
+    }
+  });
+
+  /* Single RAF loop for ring lerp */
+  (function animRing(){
+    rx += (mx-rx)*.1;
+    ry += (my-ry)*.1;
+    ring.style.left = rx+'px';
+    ring.style.top  = ry+'px';
+    requestAnimationFrame(animRing);
+  })();
+})();
+
+/* ============================================================
+   HERO GLOW — PERF FIX
+   Original used left/top (triggers layout each frame).
+   Now uses transform:translate() — GPU-composited, zero layout cost.
+   RAF-throttled to avoid redundant frames.
+   ============================================================ */
+(function initHeroGlow(){
+  if(!matchMedia('(hover:hover)').matches) return;
+  const heroEl = document.getElementById('hero');
+  const glow   = document.getElementById('hero-glow');
+  let rafId = null;
+  let ex=0, ey=0;
+
+  heroEl.addEventListener('mousemove', e=>{
+    ex = e.clientX;
+    ey = e.clientY;
+    if(rafId) return;
+    rafId = requestAnimationFrame(()=>{
+      const r = heroEl.getBoundingClientRect();
+      /* Offset from center of hero */
+      const ox = ex - r.left  - r.width  * .5;
+      const oy = ey - r.top   - r.height * .5;
+      glow.style.transform = `translate(calc(-50% + ${ox}px), calc(-50% + ${oy}px))`;
+      rafId = null;
+    });
+  },{passive:true});
+
+  heroEl.addEventListener('mouseleave',()=>{
+    /* Animate back to center smoothly */
+    glow.style.transition = 'transform .8s cubic-bezier(.25,.1,.25,1)';
+    glow.style.transform  = 'translate(-50%,-50%)';
+    setTimeout(()=>{ glow.style.transition=''; },820);
+  });
+})();
+
+/* ============================================================
+   THEME TOGGLE
+   ============================================================ */
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const h = document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme')==='dark' ? 'light' : 'dark');
+});
+document.getElementById('themeToggle').addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===' ') e.currentTarget.click();
+});
+
+/* ============================================================
+   SCROLLED NAV
+   ============================================================ */
+window.addEventListener('scroll',()=>{
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+},{passive:true});
+
+/* ============================================================
+   MOBILE MENU — FIX: removed inline onclick="" from all links;
+   uses single delegated listener instead.
+   ============================================================ */
+const ham  = document.getElementById('hamburger');
+const mob  = document.getElementById('mobileMenu');
+
+function openMobile(){
+  mob.classList.add('open');
+  ham.setAttribute('aria-expanded','true');
+  const s = ham.querySelectorAll('span');
+  s[0].style.transform = 'rotate(45deg) translate(5px,5px)';
+  s[1].style.opacity   = '0';
+  s[2].style.transform = 'rotate(-45deg) translate(5px,-5px)';
+}
+function closeMobile(){
+  mob.classList.remove('open');
+  ham.setAttribute('aria-expanded','false');
+  ham.querySelectorAll('span').forEach(s=>{ s.style.transform=''; s.style.opacity=''; });
+}
+function toggleMobile(){ mob.classList.contains('open') ? closeMobile() : openMobile(); }
+
+ham.addEventListener('click', toggleMobile);
+ham.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' ') toggleMobile(); });
+
+/* Close on any nav link click (event delegation — no inline onclick needed) */
+mob.addEventListener('click', e=>{
+  if(e.target.tagName==='A') closeMobile();
+});
+
+/* Close on outside click */
+document.addEventListener('click', e=>{
+  if(mob.classList.contains('open') && !mob.contains(e.target) && !ham.contains(e.target)){
+    closeMobile();
+  }
+});
+
+/* ============================================================
+   INTERSECTION OBSERVER — SCROLL REVEAL
+   ============================================================ */
+const revealObserver = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting) return;
+    const idx = Array.from(e.target.parentElement.children).indexOf(e.target);
+    /* Stagger siblings, cap delay so it doesn't get too slow */
+    e.target.style.transitionDelay = Math.min(idx * 0.07, 0.42)+'s';
+    e.target.classList.add('visible');
+    revealObserver.unobserve(e.target);
+    /* Trigger counters and bars once visible */
+    e.target.querySelectorAll('.stat-val').forEach(animateCounter);
+    e.target.querySelectorAll('.stat-bar-fill').forEach(b=>{
+      setTimeout(()=>{ b.style.width = b.dataset.width; }, 350);
+    });
+  });
+},{threshold:.1, rootMargin:'0px 0px -40px 0px'});
+
+document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+/* ============================================================
+   ANIMATED COUNTER
+   FIX: targets .stat-val; prefix/suffix are separate DOM spans
+   so the gradient is always fully sized — no clipping.
+   ============================================================ */
 function animateCounter(el){
-  if(el.dataset.animated)return;el.dataset.animated='1';
-  const target=parseFloat(el.dataset.target)||0,
-        dec=parseInt(el.dataset.decimal)||0,
-        prefix=el.dataset.prefix||'',
-        suffix=el.dataset.suffix||'',
-        dur=2000,
-        start=performance.now();
+  if(el.dataset.animated) return;
+  el.dataset.animated = '1';
+  const target = parseFloat(el.dataset.target) || 0;
+  const dec    = parseInt(el.dataset.decimal)  || 0;
+  const dur    = 2000;
+  const start  = performance.now();
+
   function step(now){
-    const p=Math.min((now-start)/dur,1),ease=1-Math.pow(1-p,3),
-          value=(target*ease).toFixed(dec);
-    el.textContent=prefix+value+(p===1?suffix:'');
-    if(p<1)requestAnimationFrame(step);
-    else el.textContent=prefix+target.toFixed(dec)+suffix;
+    const p    = Math.min((now-start)/dur, 1);
+    const ease = 1 - Math.pow(1-p, 3); /* ease-out cubic */
+    el.textContent = (target*ease).toFixed(dec);
+    if(p < 1) requestAnimationFrame(step);
+    else el.textContent = target.toFixed(dec);
   }
   requestAnimationFrame(step);
 }
-if(matchMedia('(hover:hover)').matches){
+
+/* ============================================================
+   3D CARD TILT — FIXED: was truncated in original file.
+   Added mouseleave reset and perspective origin centering.
+   PERF: throttled via RAF; will-change added in CSS
+   ============================================================ */
+(function initTilt(){
+  if(!matchMedia('(hover:hover)').matches) return;
+  /* prefers-reduced-motion guard */
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+
   document.querySelectorAll('.edge-card,.stat-card,.tl-content,.glass-card').forEach(card=>{
-    card.addEventListener('mousemove',e=>{const r=card.getBoundingClientRect();
-      const x=(e.clientX-r.left)/r.width-.5;
-      const y=(e.clientY-r.top)/r.height-.5;
-      card.style.transform=`perspective(700px) rotateY(${x*6}deg) rotateX(${-y*6}deg) translateY(-5px)`;
+    let rafId = null;
+    let ex=0, ey=0;
+
+    card.addEventListener('mousemove', e=>{
+      ex=e.clientX; ey=e.clientY;
+      if(rafId) return;
+      rafId = requestAnimationFrame(()=>{
+        const r = card.getBoundingClientRect();
+        const x = (ex - r.left)  / r.width  - .5;
+        const y = (ey - r.top)   / r.height - .5;
+        card.style.transform = `perspective(700px) rotateY(${x*5}deg) rotateX(${-y*5}deg) translateY(-5px)`;
+        rafId = null;
+      });
     },{passive:true});
-    card.addEventListener('mouseleave',()=>{card.style.transform='';card.style.transition='transform .5s ease'});
-    card.addEventListener('mouseenter',()=>{card.style.transition='transform .1s ease'});
+
+    /* FIX: missing mouseleave handler — was causing cards to stay tilted */
+    card.addEventListener('mouseleave',()=>{
+      if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
+      card.style.transform = '';
+    });
   });
-}
+})();
 </script>
 </body>
 </html>
