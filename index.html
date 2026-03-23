@@ -556,17 +556,6 @@ section{
 }
 [data-theme="light"] .indicator-card p{color:#163055}
 
-/* ============================================================
-   SCREENSHOTS
-   ============================================================ */
-.screenshot-wrap{
-  display:flex;justify-content:center;margin-top:1.5rem;
-}
-.screenshot-wrap img{
-  max-width:100%;height:auto;border-radius:14px;
-  box-shadow:0 10px 30px rgba(0,0,0,.25);
-  border:1px solid var(--border);
-}
 
 /* ============================================================
    CONTACT
@@ -739,7 +728,6 @@ footer{
     <a href="#services" role="menuitem">Services</a>
     <a href="#stats" role="menuitem">Performance</a>
     <a href="#info" role="menuitem">Indicators</a>
-    <a href="#screenshots" role="menuitem">Proof</a>
     <a href="#contact" role="menuitem">Contact</a>
   </div>
   <div class="nav-right">
@@ -759,7 +747,6 @@ footer{
   <a href="#upcoming">Upcoming</a>
   <a href="#stats">Performance</a>
   <a href="#info">Indicators</a>
-  <a href="#screenshots">Screenshots</a>
   <a href="#contact">Contact</a>
 </nav>
 
@@ -906,9 +893,20 @@ footer{
           <p>Launched structured advisory under Finances Vision — focusing on investment planning, retirement strategies, and budgeting systems.</p>
         </div>
       </div>
+
+      <div class="tl-item reveal" role="listitem">
+  <div class="tl-space"></div>
+  <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+  <div class="tl-content">
+    <div class="tl-year">2025</div>
+    <h4>Advanced Indicator Development</h4>
+    <p>Started building custom trading indicators grounded in price action and ICT/SMC concepts, with a strong focus on market structure, liquidity mapping, and high-probability execution.</p>
+  </div>
+</div>
+      
       <div class="tl-item reveal" role="listitem">
         <div class="tl-content">
-          <div class="tl-year">2019–Present</div>
+          <div class="tl-year">Present</div>
           <h4>Client Impact &amp; Growth</h4>
           <p>Guided 1000+ clients across India, combining trading insight with disciplined financial planning to deliver practical, results-driven outcomes.</p>
         </div>
@@ -1041,44 +1039,30 @@ footer{
   <div class="section-inner">
     <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
       <span class="section-label">Indicator Previews</span>
-      <h2 class="section-title">TradingView / MT5 Indicator</h2>
+      <h2 class="section-title">TradingView Indicator</h2>
     </div>
     <div class="indicator-grid">
       <div class="indicator-card reveal">
         <img src="1.gif" alt="Indicator 1: Trend + Momentum preview" loading="lazy">
-        <h3>Indicator 1 (Trend + Momentum)</h3>
-        <p>1) Trend-following directional filter.<br>
-           2) Momentum entry timing with automatic level confluence.<br>
-           3) Multi-timeframe alignment built-in.<br>
-           4) Ideal for swing and intraday breakout setups.</p>
-      </div>
-      <div class="indicator-card reveal">
-        <img src="2.gif" alt="Indicator 2: Structure + Divergence preview" loading="lazy">
-        <h3>Indicator 2 (Structure + Divergence)</h3>
-        <p>1) Market structure oscillator with adaptive support/resistance.<br>
-           2) Divergence alerts for momentum reversals.<br>
-           3) False-break filter and confirmation streak logic.<br>
-           4) Easy visual entry zone with risk-level overlay.</p>
-      </div>
-    </div>
-  </div>
-</section>
+        <h3>Price Action Indicator</h3>
+<p>
+1) Identifies market structure using higher highs/lows and lower highs/lows.<br>
+2) Highlights key support and resistance zones based on price behavior.<br>
+3) Helps track trend direction and potential breakout or reversal areas.<br>
+4) Commonly used for both intraday and swing trading setups.
+</p>
+</div>
 
-<div class="section-divider"></div>
-
-<!-- ============================================================
-     SCREENSHOTS
-     PERF: Added loading="lazy" to GIF
-     ============================================================ -->
-<section id="screenshots">
-  <div class="section-inner">
-    <div class="reveal" style="text-align:center;max-width:560px;margin:0 auto 1rem">
-      <span class="section-label">Performance Evidence</span>
-      <h2 class="section-title">Verified Trading Results</h2>
-      <p>Snapshots from live accounts and strategy dashboards</p>
-    </div>
-    <div class="screenshot-wrap reveal">
-      <img src="ss2.gif" alt="Verified trading performance screenshot" loading="lazy">
+<div class="indicator-card reveal">
+  <img src="2.gif" alt="Indicator 2: ICT / SMC preview" loading="lazy">
+  <h3>ICT / SMC Indicator</h3>
+  <p>
+  1) Focuses on smart money concepts like liquidity, order blocks, and market structure shifts.<br>
+  2) Identifies areas where institutions are likely to enter or exit positions.<br>
+  3) Highlights potential reversal zones using imbalance and liquidity sweeps.<br>
+  4) Used to refine entries with better risk-to-reward positioning.
+  </p>
+</div>
     </div>
   </div>
 </section>
