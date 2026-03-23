@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="icon" href="favicon.ico">
 <title>Finances Vision — Professional Trader</title>
 <!-- PERF: preconnect before font load -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -572,6 +572,36 @@ section{
 [data-theme="light"] .indicator-card p{color:#163055}
 
 
+.backend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: center;
+}
+
+.backend-content h3 {
+  margin-bottom: 0.8rem;
+}
+
+.backend-points {
+  margin-top: 1rem;
+  color: var(--text-muted);
+  line-height: 1.8;
+}
+
+.backend-image img {
+  width: 100%;
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .backend-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ============================================================
    CONTACT
    ============================================================ */
@@ -744,6 +774,7 @@ footer{
     <a href="#services" role="menuitem">Services</a>
     <a href="#stats" role="menuitem">Performance</a>
     <a href="#info" role="menuitem">Indicators</a>
+      <a href="#backend">P&amp;L CMS</a>
     <a href="#contact" role="menuitem">Contact</a>
   </div>
   <div class="nav-right">
@@ -763,6 +794,7 @@ footer{
   <a href="#upcoming">Upcoming</a>
   <a href="#stats">Performance</a>
   <a href="#info">Indicators</a>
+  <a href="#backend">P&amp;L CMS</a>
   <a href="#contact">Contact</a>
 </nav>
 
@@ -1085,6 +1117,45 @@ footer{
 
 <div class="section-divider"></div>
 
+<section id="backend">
+  <div class="section-inner">
+    
+    <div class="reveal" style="text-align:center;max-width:600px;margin:0 auto 1.5rem">
+      <span class="section-label">P&L CMS</span>
+      <h2 class="section-title">Client P&amp;L Management System</h2>
+      <p style="color:var(--text-muted)">
+        A custom-built backend system designed to track, manage, and visualize client-wise trading performance with full transparency and structured reporting.
+      </p>
+    </div>
+
+    <div class="backend-grid">
+
+      <!-- LEFT: TEXT -->
+      <div class="backend-content reveal">
+        <h3>What It Does</h3>
+        <p>
+          Developed an internal system to manage personalized profit &amp; loss tracking for each client. 
+          It records trades, calculates profit splits, and maintains structured performance logs in a clear and consistent format.
+        </p>
+
+        <ul class="backend-points">
+          <li>✔ Client-specific P&amp;L tracking</li>
+          <li>✔ Automated profit split calculation</li>
+          <li>✔ Structured transaction history</li>
+          <li>✔ Clear performance overview dashboard</li>
+        </ul>
+      </div>
+
+      <!-- RIGHT: IMAGE -->
+      <div class="backend-image reveal">
+        <img src="dashboard.png" alt="Client P&L Dashboard Preview">
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
 <!-- ============================================================
      CONTACT
      ============================================================ -->
